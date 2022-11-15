@@ -1,5 +1,7 @@
 # Writing Safe Canisters
 
+> This post is written by [CanScan](../), we audit Rust canisters. Reach out!
+
 The Internet Computer is a new platform, hence what we are witnessing, the performance, the functionalities and more importantly the software design patterns applied in the ecosystem are only the tips of the iceberg.
 
 Due to this reason, it may still not be clear what kind of bugs to look for when checking the codebase for an Internet Computer canister, this post is intended to be a small contribution 
