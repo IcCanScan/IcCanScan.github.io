@@ -7,4 +7,10 @@ Additionally, we offer our services for auditing your Rust smart contracts, unfo
 Reach out on discord `canscan#1566` or via email at `canscan@proton.me`.
 
 ## Blog
+
 - [Writing Safe Canisters](./safe.html)
+
+## Portfolio
+
+We are still starting out, so far we have only had the pleasure of performing 2 audits for [Psychedelic DAO](https://psychedelic.ooo/).
+
