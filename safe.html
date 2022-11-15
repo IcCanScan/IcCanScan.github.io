@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>CanScan</title>
+    <title>CanScan | Safe Canisters</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>.markdown-style { font-family: arial,sans-serif; }</style>
   </head>
@@ -91,14 +91,49 @@ class MarkdownStyle extends HTMLElement {
     }
 }
 customElements.define('markdown-style', MarkdownStyle);</script><markdown-style style="max-width: 960px; margin: 0 auto 60px auto; padding: 8px" class="markdown-style">
-    <h1 id="canscan"><a class="anchor" aria-hidden="true" tabindex="-1" href="#canscan"><span class="octicon octicon-link"></span></a>CanScan</h1>
-    <p>Welcome to our home page! Our mission is to make sure smart contracts on the Internet Computer are safe enough, we provide materials around this mission.</p>
-    <p>Additionally, we offer our services for auditing your Rust smart contracts, unfortunately, the Motoko language is still young and we do not want to claim any expertise in that domain just yet.</p>
-    <p>Reach out on discord <code>canscan#1566</code> or via email at <code>canscan@proton.me</code>.</p>
-    <h2 id="blog"><a class="anchor" aria-hidden="true" tabindex="-1" href="#blog"><span class="octicon octicon-link"></span></a>Blog</h2>
-    <ul>
-      <li><a href="./safe.html">Writing Safe Canisters</a></li>
-    </ul>
+    <h1 id="writing-safe-canisters"><a class="anchor" aria-hidden="true" tabindex="-1" href="#writing-safe-canisters"><span class="octicon octicon-link"></span></a>Writing Safe Canisters</h1>
+    <p>The Internet Computer is a new platform, hence what we are witnessing, the performance, the functionalities and more importantly the software design patterns applied in the ecosystem are only the tips of the iceberg.</p>
+    <p>Due to this reason, it may still not be clear what kind of bugs to look for when checking the codebase for an Internet Computer canister, this post is intended to be a small contribution</p>
+    <h2 id="unit-testing-of-the-canister"><a class="anchor" aria-hidden="true" tabindex="-1" href="#unit-testing-of-the-canister"><span class="octicon octicon-link"></span></a>Unit testing of the canister</h2>
+    <p>This should come naturally given the very foundation of what a canister really is, it is software, and like any other software, it is not worthy of any particular or mission-critical role if it’s not unit tested properly.</p>
+    <p>We recommend a separation of concern between your application logic, and the interface that exposes that logic to the public.</p>
+    <p>Make sure to reach code coverage of at least 75% in your projects, and apply fuzz testing when applicable.</p>
+    <h2 id="cycles"><a class="anchor" aria-hidden="true" tabindex="-1" href="#cycles"><span class="octicon octicon-link"></span></a>Cycles</h2>
+    <p>One large point of concern is related to cycle draining attacks or points of failure related to the reverse-gas model.</p>
+    <ol>
+      <li>Ensure that your canister is always filled with cycles by any means necessary, until when there are protocols put in place for this.</li>
+      <li>Make sure you’re not sending cycles to other canisters without any conditions, as logical mistakes in this area can be expensive, it is recommended to take a comprehensive detailed unroll of your code reaching any inter-canister call which sends cycles.</li>
+      <li>Filter the messages you want your canister to accept by implementing proper <code>inspect_message</code> and reason about the acceptable payload size of each method.</li>
+      <li>Double-check that you’re not causing any infinite loops by unconstrained retry logic.</li>
+    </ol>
+    <h2 id="trapping"><a class="anchor" aria-hidden="true" tabindex="-1" href="#trapping"><span class="octicon octicon-link"></span></a>Trapping</h2>
+    <p>Trapping in the IC is like a panic, but your canister’s state changes are also rollbacked, as if the call never happened, traps can be expensive, and they can cause difficulty when it comes to reasoning about the correctness of a certain piece of code, ensure that you do understand the implications of what a trap does and only use when it makes sense, prefer returning an error or rejecting the call in place of traps when applicable.</p>
+    <h2 id="concurrency--state-management"><a class="anchor" aria-hidden="true" tabindex="-1" href="#concurrency--state-management"><span class="octicon octicon-link"></span></a>Concurrency &#x26; State Management</h2>
+    <p>Traps are one of the many reasons concurrency is hard to reason about, one important note to remember when checking concurrent IC code is that a trap only rollbacks the state that was changed during the current callback (anything after the <code>await</code>).</p>
+    <p>Additionally, any other entry point of your codebase can be executed while your awaiting the response for an inter-canister call (this of course includes the callbacks as well), test your logic for this property, or employ proper design patterns common to distributed systems such as 2 phase commits, WALs or similar patterns.</p>
+    <h2 id="ddos-attacks"><a class="anchor" aria-hidden="true" tabindex="-1" href="#ddos-attacks"><span class="octicon octicon-link"></span></a>DDoS Attacks</h2>
+    <p>You do not need to worry about this at the protocol level, Internet Computer is already supposed to scale, what you need to worry about is resource allocation for your own data and users.</p>
+    <p>Make sure you are using your heap properly, and use the stable storage as well if you know your data is more than the heap (which is 4GB).</p>
+    <p>Some other patterns to implement are:</p>
+    <ol>
+      <li>Multi-canister achieving.</li>
+      <li>Horizontal scaling.</li>
+      <li>Removing old data.</li>
+      <li>Using other canisters as storage and cache in your main.</li>
+      <li>Using stable storage as the main storage.</li>
+      <li>Limiting the user inputs that need to be preserved.</li>
+      <li>Having a garbage collector might help as well.</li>
+    </ol>
+    <h2 id="authentication--access-control"><a class="anchor" aria-hidden="true" tabindex="-1" href="#authentication--access-control"><span class="octicon octicon-link"></span></a>Authentication &#x26; Access Control</h2>
+    <p>If part of the functionality of you canister is limited to a certain group of controllers/admins, make sure you’re not missing any of those anywhere, this seems obvious, but is actually something you might forget, so during an audit always check for this problem, have a clear definition of the access structure of your canister.</p>
+    <h2 id="misuse-of-wasm-system-api-calls"><a class="anchor" aria-hidden="true" tabindex="-1" href="#misuse-of-wasm-system-api-calls"><span class="octicon octicon-link"></span></a>Misuse of WASM System API calls</h2>
+    <p>Surprise! you are not allowed to use all of the system API calls in all of the entry points of your canister, the most common API misuse to look for is the use of <code>ic::caller()</code> in reply/reject callbacks, this results in your canister trap.</p>
+    <p>Once in a while, it might <em>actually</em> be a good idea to check out the <a href="https://internetcomputer.org/docs/current/references/ic-interface-spec">IC Interface Spec</a> 🙂</p>
+    <h2 id="upgradability--migrations"><a class="anchor" aria-hidden="true" tabindex="-1" href="#upgradability--migrations"><span class="octicon octicon-link"></span></a>Upgradability &#x26; Migrations</h2>
+    <p>Keep the operation needed to be executed in your pre/post upgrade code to a minimum, these functions should NEVER fail under any circumstances, this will simply lock your canister, and forces you to <code>reinstall</code> your canister.</p>
+    <h2 id="the-consequence-of-untrusted-calls"><a class="anchor" aria-hidden="true" tabindex="-1" href="#the-consequence-of-untrusted-calls"><span class="octicon octicon-link"></span></a>The consequence of Untrusted Calls</h2>
+    <p>When calling another canister, make sure you trust that canister, a malicious canister can simply a prevent reply later to your code late on purpose, for example after you’ve completed an upgrade, this will result for broken callback tables in the canister, this has undefined behaviour and can ruin your canister logic.</p>
+    <p>When making a call to an untrusted canister, make sure you’re not passing any callbacks, use the values of -1, and -1 for reply/reject callback when doing a one-way call.</p>
   <style>markdown-style pre .copied {
   display: flex;
   position: absolute;
